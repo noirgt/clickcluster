@@ -1,0 +1,61 @@
+version: '3.7'
+
+networks:
+  ch_net:
+    name: ch_net
+    driver: bridge
+    driver_opts:
+       com.docker.monwork.enable_ipv6: 'false'
+    ipam:
+       driver: default
+       config:
+          - subnet: 172.31.0.0/16
+
+services:
+  ch_sub_1:
+    container_name: ch_sub_1
+    hostname: ch_sub_1
+    image: yandex/clickhouse-server:21.12.2.17
+    restart: always
+    ports:
+      - 9000:9000
+      - 9009:9009
+      - 8123:8123
+    volumes:
+      - "./conf/ch_sub_1:/etc/clickhouse-server"
+      - "./database/ch_sub_1:/var/lib/clickhouse"
+      - "./logs/ch_sub_1:/var/log/clickhouse-server"
+    extra_hosts:
+      - "ch_sub_2:10.101.0.194"
+      - "ch_rep_3:10.101.0.194"
+      - "ch_sub_3:10.101.0.195"
+      - "ch_rep_1:10.101.0.195"
+      - "zk_1:10.101.0.190"
+      - "zk_2:10.101.0.191"
+      - "zk_3:10.101.0.192"
+    networks:
+      - ch_net
+
+  ch_rep_2:
+    container_name: ch_rep_2
+    hostname: ch_rep_2
+    image: yandex/clickhouse-server:21.12.2.17
+    restart: always
+    ports:
+      - 9005:9000
+      - 9010:9010
+      - 8125:8125
+    volumes:
+      - "./conf/ch_rep_2:/etc/clickhouse-server"
+      - "./database/ch_rep_2:/var/lib/clickhouse"
+      - "./logs/ch_rep_2:/var/log/clickhouse-server"
+    extra_hosts:
+      - "ch_sub_2:10.101.0.194"
+      - "ch_rep_3:10.101.0.194"
+      - "ch_sub_3:10.101.0.195"
+      - "ch_rep_1:10.101.0.195"
+      - "zk_1:10.101.0.190"
+      - "zk_2:10.101.0.191"
+      - "zk_3:10.101.0.192"
+    networks:
+      - ch_net
