@@ -8,11 +8,9 @@ cluster = {
     }
 
 inventory = click_inventory(cluster)
-print(inventory)
 
 template = Template(
 """version: '3.7'
-
 networks:
   ch_net:
     name: ch_net
@@ -26,19 +24,20 @@ networks:
 
 services:
 {%- for container in click_containers %}
-  {{ container }}:
-    container_name: {{ container }}
-    hostname: {{ container }}
+  {{ container[1] }}:
+    container_name: {{ container[1] }}
+    hostname: {{ container[1] }}
     image: yandex/clickhouse-server:21.12.2.17
     restart: always
     ports:
-        - {{ 9000 + loop.index - 1}}:{{ 9000 + loop.index - 1 }}
-        - {{ 9009 + loop.index - 1}}:{{ 9009 + loop.index - 1 }}
-        - {{ 8123 + loop.index - 1}}:{{ 8123 + loop.index - 1 }}
+        - {{ 9000 + container[0] }}:{{ 9000 + container[0] }}
+        - {{ 9009 + container[0] }}:{{ 9009 + container[0] }}
+        - {{ 8123 + container[0] }}:{{ 8123 + container[0] }}
+        - {{ 9363 + container[0] }}:{{ 9363 + container[0] }}
     volumes:
-        - "./conf/{{ container }}:/etc/clickhouse-server"
-        - "./database/{{ container }}:/var/lib/clickhouse"
-        - "./logs/{{ container }}:/var/log/clickhouse-server"
+        - "./conf/{{ container[1] }}:/etc/clickhouse-server"
+        - "./database/{{ container[1] }}:/var/lib/clickhouse"
+        - "./logs/{{ container[1] }}:/var/log/clickhouse-server"
     extra_hosts:
         {%- for host in extra_hosts %}
         - "{{ host }}"
@@ -47,11 +46,11 @@ services:
         - ch_net
 {% endfor %}
 {%- for container in zoo_containers %}
-  {{ container }}:
-    container_name: {{ container }}
+  {{ container[1] }}:
+    container_name: {{ container[1] }}
     image: bitnami/zookeeper:3.7.0
     restart: always
-    hostname: {{ container }}
+    hostname: {{ container[1] }}
     environment:
         - ZOO_SERVER_ID=3
         - ZOO_SERVERS={{ zoo_structure }}
@@ -75,10 +74,12 @@ services:
 {% endfor %}
 """
 )
-
-print(template.render(
-    click_containers=inventory["10.102.0.193"]["click_containers"],
-    zoo_containers=inventory["10.102.0.193"]["zoo_containers"],
-    zoo_structure=inventory["10.102.0.193"]["zoo_structure"],
-    extra_hosts=inventory["10.102.0.193"]["extra_hosts"]
-))
+ 
+for host in inventory["clickhouse"]["_meta"]["hostvars"]:
+    print(template.render(
+        click_containers=inventory["clickhouse"]["_meta"]["hostvars"][host]["click_containers"],
+        zoo_containers=inventory["clickhouse"]["_meta"]["hostvars"][host]["zoo_containers"],
+        zoo_structure=inventory["clickhouse"]["_meta"]["hostvars"][host]["zoo_structure"],
+        extra_hosts=inventory["clickhouse"]["_meta"]["hostvars"][host]["extra_hosts"]
+    ))
+ 

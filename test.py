@@ -1,27 +1,91 @@
-   
-  
-def clickcomposer(click_cluster):
-    for id_node, ip_node in enumerate(click_cluster):
-        id_node += 1
-        replica_list = []
-        for id_replica, id_shard in enumerate(click_cluster[ip_node]):
-            id_replica += 1
-            replica_list.append(f"ch{id_shard}_rep{id_replica}")
-        print(
-            f"IP-node: {ip_node}, containers: {replica_list}"
-        )
-   
-    for id_node, one_node in enumerate(reversed(full_nodes_list)):
-        id_node -= len(full_nodes_list) - 1
-        id_node = -id_node
-        containers = one_node["containers"]
-        for _one_node in full_nodes_list[:id_node]:
-            for id_container, one_container in enumerate(containers):
-                if one_container in _one_node["containers"]:
-                    id_replica = int(one_container[-1])
-                    containers[id_container] = f"{one_container[:-1]}{id_replica + 1}"
+from prometheus_client import Gauge,start_http_server
+from time import sleep
+import pycurl
+from io import BytesIO
+from urllib.parse import urlencode
+import threading
 
-    print(full_nodes_list)
+table_number_rows = Gauge(
+    "table_number_rows", 
+    "Number of rows in the requested table", 
+    ['table_name','shard_number', 'replica_name']
+    )
 
 
-{'10.102.0.193': {'click_containers': ['ch1_rep1', 'ch3_rep2'], 'zoo_containers': ['zk1'], 'extra_hosts': ['ch1_rep2:10.102.0.194', 'ch2_rep1:10.102.0.194', 'zk2:10.102.0.194', 'ch2_rep2:10.102.0.195', 'ch3_rep1:10.102.0.195', 'zk3:10.102.0.195'], 'zoo_structure': '0.0.0.0:2888:3888,zk2:2888:3888,zk3:2888:3888'}, '10.102.0.194': {'click_containers': ['ch1_rep2', 'ch2_rep1'], 'zoo_containers': ['zk2'], 'extra_hosts': ['ch1_rep1:10.102.0.193', 'ch3_rep2:10.102.0.193', 'zk1:10.102.0.193', 'ch2_rep2:10.102.0.195', 'ch3_rep1:10.102.0.195', 'zk3:10.102.0.195'], 'zoo_structure': 'zk1:2888:3888,0.0.0.0:2888:3888,zk3:2888:3888'}, '10.102.0.195': {'click_containers': ['ch2_rep2', 'ch3_rep1'], 'zoo_containers': ['zk3'], 'extra_hosts': ['ch1_rep1:10.102.0.193', 'ch3_rep2:10.102.0.193', 'zk1:10.102.0.193', 'ch1_rep2:10.102.0.194', 'ch2_rep1:10.102.0.194', 'zk2:10.102.0.194'], 'zoo_structure': 'zk1:2888:3888,zk2:2888:3888,0.0.0.0:2888:3888'}}
+
+def curl_request(url, auth, params):
+    params = {f'{params[0]}': f'{params[1]}'}
+    buffer_curl = BytesIO()
+    application_curl = pycurl.Curl()
+    application_curl.setopt(application_curl.URL, url + '?' + urlencode(params))
+    application_curl.setopt(application_curl.USERPWD, f'{auth[0]}:{auth[1]}')
+    application_curl.setopt(application_curl.WRITEDATA, buffer_curl)
+    application_curl.perform() 
+    application_curl.close()
+    get_body = buffer_curl.getvalue()
+    return(get_body.decode('utf8'))
+
+
+
+def gauge_metric(value, table, shard_number, replica_name):
+    if type(value) != int and not value.isdigit():
+        raise Exception('Only integer, please!')
+    else:
+        int(value)
+
+    table_number_rows.labels(
+        f'{table}', 
+        f'{shard_number}', 
+        f'{replica_name}').set(value)
+
+
+
+# Управление потоком, выполнять curl url каждые 15 секунд
+def gauge_threads(replica, auth, database, table):
+    while True:
+        row_value = curl_request(
+               f'http://{replica[1]}:{replica[2]}/', 
+                auth, 
+                ("query", f"""
+                SELECT log_max_index FROM system.replicas 
+                WHERE (database = '{database}' and table = '{table}') 
+                FORMAT Vertical
+                """ )
+                )
+        finish_value = int(row_value.split(":")[-1].strip())
+
+        t = threading.Thread(target=gauge_metric,args=(
+            finish_value, 
+            table, 
+            replica[0], 
+            replica[1]))
+        t.setDaemon(True)
+        t.start()
+        sleep(15)
+
+
+
+if __name__ == '__main__':
+    start_http_server(9091)
+    credentials = ('default', 'EZxoDNmAXKcAFbq2fza4Z25R')
+    database = 'test_metrics'
+    table = 'calc_success_request'
+    table_list = ['calc_success_request', 'calc_error_request']
+    replica_list = [
+            (1, 'click-znmp1-rep1.innoseti.ru', 8123),
+            (2, 'click-znmp2-rep2.innoseti.ru', 8124),
+            (2, 'click-znmp2-rep1.innoseti.ru', 8123),
+            (3, 'click-znmp3-rep2.innoseti.ru', 8124),
+            (3, 'click-znmp3-rep1.innoseti.ru', 8123),
+            (1, 'click-znmp1-rep2.innoseti.ru', 8124)
+            ]
+    threads = []
+    for table in table_list:
+        for replica in replica_list:
+            t = threading.Thread(target=gauge_threads,args=(
+                replica, credentials, database, table))
+            threads.append(t)
+    for thread in threads:
+        thread.setDaemon(True)
+        thread.start()
+    thread.join()

@@ -1,0 +1,10 @@
+<clickhouse>
+    <zookeeper>
+{% for structure in zoo_structure%}
+        <node index="{{ structure[0] }}">
+            <host>{{ structure[1] }}</host>
+            <port>2181</port>
+        </node>
+{% endfor %}
+    </zookeeper>
+</clickhouse>

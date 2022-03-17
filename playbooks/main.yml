@@ -1,0 +1,68 @@
+---
+- name: Install Clickhouse to node of cluster  
+  hosts: clickhouse
+  vars:
+    root_dir: /opt/clickhouse-server
+    conf_dir: "{{ root_dir }}/conf"
+    base_dir: "{{ root_dir }}/database"
+    logs_dir: "{{ root_dir }}/logs"
+
+    click_dirs:
+      - { path: "{{ conf_dir }}", replica: "{{ click_containers }}" }
+      - { path: "{{ base_dir }}", replica: "{{ click_containers }}" }
+      - { path: "{{ logs_dir }}", replica: "{{ click_containers }}" }
+  become: true
+
+  tasks:
+    - name: Create personal directories for replica
+      ansible.builtin.file:
+        path: "{{ item.0.path }}/{{ item.1[1] }}"
+        state: directory
+        mode: '0755'
+        recurse: yes
+      with_subelements:
+      - "{{ click_dirs }}"
+      - "replica"
+
+    - name: Create directory for blocks of configuration
+      ansible.builtin.file:
+        path: "{{ item.0.path }}/{{ item.1[1] }}/config.d"
+        state: directory
+        mode: '0755'
+        recurse: yes
+      with_subelements:
+      - "{{ click_dirs[:1] }}"
+      - "replica"
+
+    - name: Copy file of docker-compose
+      ansible.builtin.template:
+        src: "../templates/docker-compose.j2"
+        dest:  "{{ root_dir }}/docker-compose.yaml"
+
+    - name: Copy file of cluster structure
+      ansible.builtin.template:
+        src: "../templates/cluster_structure.j2"
+        dest: "{{ conf_dir }}/{{ item[1] }}/config.d/cluster_structure.xml"
+      with_items:
+        - "{{ click_containers }}"
+
+    - name: Copy file of Zookeeper structure
+      ansible.builtin.template:
+        src: "../templates/zoo_structure.j2"
+        dest: "{{ conf_dir }}/{{ item[1] }}/config.d/zoo_structure.xml"
+      with_items:
+        - "{{ click_containers }}"
+
+    - name: Copy file of Clickhouse users
+      ansible.builtin.template:
+        src: "../templates/users.j2"
+        dest: "{{ conf_dir }}/{{ item[1] }}/users.xml"
+      with_items:
+        - "{{ click_containers }}"
+
+    - name: Copy config file of Clickhouse
+      ansible.builtin.template:
+        src: "../templates/config.j2"
+        dest: "{{ conf_dir }}/{{ item[1] }}/config.xml"
+      with_items:
+        - "{{ click_containers }}"
