@@ -1,0 +1,20 @@
+---
+- name: Create personal directories for replica
+  ansible.builtin.file:
+    path: "{{ item.0.path }}/{{ item.1[1] }}"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  with_subelements:
+  - "{{ click_dirs }}"
+  - "replica"
+
+- name: Create directory for blocks of configuration
+  ansible.builtin.file:
+    path: "{{ item.0.path }}/{{ item.1[1] }}/config.d"
+    state: directory
+    mode: '0755'
+    recurse: yes
+  with_subelements:
+  - "{{ click_dirs[:1] }}"
+  - "replica"

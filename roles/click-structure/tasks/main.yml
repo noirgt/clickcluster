@@ -1,0 +1,4 @@
+---
+# tasks file for click-structure
+- include_tasks: create_dirs.yml
+- include_tasks: copy_configs.yml

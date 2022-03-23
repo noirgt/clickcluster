@@ -40,18 +40,14 @@ services:
     restart: always
     hostname: {{ container[1] }}
     environment:
-        - ZOO_SERVER_ID=3
-        - ZOO_SERVERS={{ zoo_servers }}
-        - ALLOW_ANONYMOUS_LOGIN=no
-        - ZOO_ENABLE_AUTH=yes
-        - ZOO_CLIENT_USER=clickhouse_zoo
-        - ZOO_CLIENT_PASSWORD_FILE=/opt/bitnami/zookeeper/.zoo-client-password
+        - ZOO_SERVER_ID={{ container[0] }}
+        - ZOO_SERVERS={{ zoo_servers[loop.index0] }}
+        - ALLOW_ANONYMOUS_LOGIN=yes
+        - ZOO_ENABLE_AUTH=no
     ports:
         - 2181:2181
         - 2888:2888
         - 3888:3888
-    volumes:
-        - "./.zoo-client-password:/opt/bitnami/zookeeper/.zoo-client-password"
     extra_hosts:
 {% for host in extra_hosts %}
         - "{{ host }}"

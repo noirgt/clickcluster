@@ -1,0 +1,10 @@
+---
+# vars file for click-structure
+conf_dir: "{{ root_dir }}/conf"
+base_dir: "{{ root_dir }}/database"
+logs_dir: "{{ root_dir }}/logs"
+
+click_dirs:
+  - { path: "{{ conf_dir }}", replica: "{{ click_containers }}" }
+  - { path: "{{ base_dir }}", replica: "{{ click_containers }}" }
+  - { path: "{{ logs_dir }}", replica: "{{ click_containers }}" }

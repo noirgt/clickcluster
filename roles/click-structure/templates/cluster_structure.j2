@@ -1,15 +1,13 @@
 <clickhouse>
    <remote_servers>
         <clickhouse_cluster>
-{% for structure in distr_structure%}
+{% for shard_id, shard_replicas in full_distr_cluster.items()%}
             <shard>
                 <internal_replication>true</internal_replication>
-{% for container in structure%}
+{% for replica in shard_replicas%}
                 <replica>
-                    <host>{{ container[1] }}</host>
-                    <port>{{ 9000 + container[0] }}</port>
-                    <user>replica_user</user>
-                    <password>j8suk0qNW00e0F2FHGy/DaKh</password>
+                    <host>{{ replica }}</host>
+                    <port>{{ 9000 + shard_id | int }}</port>
                 </replica>
 {% endfor%}
             </shard>
