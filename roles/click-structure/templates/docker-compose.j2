@@ -34,6 +34,7 @@ services:
         - ch_net
 {% endfor %}
 {% for container in zoo_containers %}
+{% set port_id =  container[0] - 1 %}
   {{ container[1] }}:
     container_name: {{ container[1] }}
     image: bitnami/zookeeper:3.7.0
@@ -44,10 +45,11 @@ services:
         - ZOO_SERVERS={{ zoo_servers[loop.index0] }}
         - ALLOW_ANONYMOUS_LOGIN=yes
         - ZOO_ENABLE_AUTH=no
+        - ZOO_PORT_NUMBER={{ 2181 + port_id }}
     ports:
-        - 2181:2181
-        - 2888:2888
-        - 3888:3888
+        - {{ 2181 + port_id }}:{{ 2181 + port_id }}
+        - {{ 2888 + port_id }}:{{ 2888 + port_id }}
+        - {{ 3888 + port_id }}:{{ 3888 + port_id }}
     extra_hosts:
 {% for host in extra_hosts %}
         - "{{ host }}"
