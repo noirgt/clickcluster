@@ -24,19 +24,20 @@ def click_inventory(click_cluster):
     # Added zoo_structure for docker-compose and config-file
     for ip_addr_id, ip_addr in enumerate(list(shards_dict.keys())):
         len_click_containers =  len(shards_dict[ip_addr]["click_containers"])
+
         shards_dict[ip_addr]["zoo_containers"].append(
-            (ip_addr_id + 1, f"zk{ip_addr_id + 1}")
+            (len(zoo_structure_list) + 1, f"zk{ip_addr_id + 1}")
         )
         zoo_structure_list.append(
-            (ip_addr_id + 1, f"zk{ip_addr_id + 1}")
+            (len(zoo_structure_list) + 1, f"zk{ip_addr_id + 1}")
         )
 
         if len_click_containers > 2:
             shards_dict[ip_addr]["zoo_containers"].append(
-                (ip_addr_id + 1, f"zk{ip_addr_id + 1}_2")
+                (len(zoo_structure_list) + 1, f"zk{ip_addr_id + 1}_2")
             )
             zoo_structure_list.append(
-                (ip_addr_id + 1, f"zk{ip_addr_id + 1}_2")
+                (len(zoo_structure_list) + 1, f"zk{ip_addr_id + 1}_2")
             )
 
     # Added extra_hosts for docker-compose
@@ -62,11 +63,11 @@ def click_inventory(click_cluster):
         
         for zk_name in shards_dict[ip_addr]["zoo_containers"]:
             zoo_servers = ""
-            for zoo_container in zoo_structure_list:
+            for zoo_container_id, zoo_container in enumerate(zoo_structure_list):
                 zoo_container = zoo_container[1]
                 if zoo_container == zk_name[1]:
                     zoo_container = "0.0.0.0"
-                zoo_servers += f"{zoo_container}:2888:3888,"
+                zoo_servers += f"{zoo_container}:{2888+ zoo_container_id}:{3888 + zoo_container_id},"
             zoo_servers = zoo_servers.rstrip(',')
             shards_dict[ip_addr]["zoo_servers"].append(zoo_servers)
 
