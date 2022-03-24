@@ -1,9 +1,9 @@
 <clickhouse>
     <zookeeper>
 {% for structure in zoo_structure%}
-        <node index="{{ structure[0] }}">
+        <node index="{{ loop.index0 + 1 }}">
             <host>{{ structure[1] }}</host>
-            <port>2181</port>
+            <port>{{ 2181 + loop.index0 }}</port>
         </node>
 {% endfor %}
     </zookeeper>
