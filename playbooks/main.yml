@@ -15,6 +15,6 @@
 
     - name: Print return information from the previous task
       ansible.builtin.debug:
-        var: "{{ 9000 + item[0] }}"
+        msg: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}:{{ 9000 + item[0] }}"
       with_items:
         - "{{ click_containers }}"
