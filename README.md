@@ -27,3 +27,4 @@
 > **Шард #3** - на нодах `10.102.3.13` и `10.102.3.12`. 
 >
 >  Получается следующая структура:
+![cluster-example-scheme](./images/cluster-example-scheme.png)
